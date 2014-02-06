@@ -104,7 +104,7 @@
                 this.collection.reset(contacts, { silent: true });
 
                 var filterType = this.filterType,
-                    filtered = _.filter(this.collection.models, function (item) {
+                    filtered = _.filter(this.collection.models, function(item) {
                         return item.get("type") === filterType;
                     });
 
