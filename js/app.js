@@ -28,12 +28,11 @@
     var ContactView = Backbone.View.extend({
         tagName: "article",
         className: "contact-container",
-        template: $("#contactTemplate").html(),
+        template: _.template($("#contactTemplate").html()),
 
         render: function () {
-            var tmpl = _.template(this.template);
             
-            $(this.el).html(tmpl(this.model.toJSON()));
+            $(this.el).html(this.template(this.model.toJSON()));
             return this;
         }
     });
@@ -46,6 +45,8 @@
             this.collection = new Directory(contacts);
             this.render();
             this.$el.find("#filter").append(this.createSelect());
+            this.on("change:filterType", this.filterByType, this);
+            this.collection.on("reset", this.render, this);
         },
 
         render: function () {
@@ -63,9 +64,7 @@
         },
 
         getTypes: function () {
-            return _.uniq(this.collection.pluck("type"), false, function (type) {
-        return type.toLowerCase();
-    });;
+            return _.uniq(this.collection.pluck("type"));
         },
          
         createSelect: function () {
@@ -76,17 +75,58 @@
          
             _.each(this.getTypes(), function (item) {
                 var option = $("<option/>", {
-                    value: item.toLowerCase(),
-                    text: item.toLowerCase()
+                    value: item,
+                    text: item
                 }).appendTo(select);
             });
             return select;
+        },
+
+        events: {
+            "change #filter select": "setFilter"
+        },
+
+        setFilter: function(e){
+            this.filterType = e.currentTarget.value;
+            this.trigger("change:filterType");
+        },
+
+        filterByType: function(){
+            if(this.filterType === "all"){
+                this.collection.reset(contacts);
+
+                contactsRouter.navigate("filter/all");
+
+            } else {
+                this.collection.reset(contacts, {silent: true });
+
+                var filterType = this.filterType,
+                    filtered = _.filter(this.collection.models, function(item){
+                        return item.get("type") === filterType;
+                    });
+
+                    this.collection.reset(filtered);
+
+                    contactsRouter.navigate("filter/" + filterType); 
+            }
         }
     });
 
+    var ContactsRouter = Backbone.Router.extend({
+        routes:{
+            "filter/:type" : "urlFilter"
+        },
+
+        urlFilter: function(type){
+            directory.filterType = type;
+            directory.trigger("change:filterType");
+        }
+    });
 
     //create instance of master view
     var directory = new DirectoryView();
+    var contactsRouter = new ContactsRouter();
+    Backbone.history.start();
 
 
 
